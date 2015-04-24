@@ -1,0 +1,17 @@
+{
+  "name": "node-achecker-batch-reporter",
+  "version": "1.0.0",
+  "description": "Generating accessibility reports for batch URIs using Node.js and AChecker",
+  "main": "service.js",
+  "scripts": {
+    "start": "node service.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "open": "0.0.5",
+    "wcag-validator": "0.0.3",
+    "when": "^3.7.2",
+    "xml2js": "^0.4.8"
+  }
+}

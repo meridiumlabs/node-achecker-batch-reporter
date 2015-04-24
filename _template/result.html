@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Validation results</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+	
+	<style type="text/css">
+		.panel {
+			page-break-inside: avoid;
+		}
+		td.error {color: red;}
+	</style>
+  </head>
+  <body>
+  	<div class="container" id="container">
+		<h1 class="page-header">Validation results (<span id="guideline"></span>)</h1>
+		<div id="validation-results"></div>
+	     <div class="row">
+
+	        <div class="col-sm-2 blog-sidebar" style="display: none;">
+				<ul class="nav nav-pills nav-stacked" id="navigation"></ul>
+	    	</div> 
+	    	<div class="col-sm-12 blog-main" id="content">
+			<script type="text/javascript">
+			parseResults = function(data) {
+
+				var results = data.results,
+				navItems = [],
+				content = document.getElementById('content'),
+				result = '',
+				errorCount = 0,
+				likelyCount = 0,
+				potentialCount = 0,
+				guideline = '';
+
+				results.forEach(function(item) {
+
+					var errors = [], likely = [], potential = [], navUrl = item.title.replace(' ', '-').replace(':','');
+
+					navItems.push({
+						"title" : item.title,
+						"url" : "#" + navUrl
+					});
+
+					guideline = item.guideline;
+
+					item.result.forEach(function(errorItem) {
+						switch(errorItem.resultType.toLowerCase()) {
+							case 'error' : 
+								errors.push(errorItem);
+								errorCount += 1;
+								break;
+							case 'potential problem':
+								potential.push(errorItem);
+								potentialCount += 1;
+
+								break;
+							default:
+								likely.push(errorItem);
+								likelyCount += 1;
+
+								break;
+						}
+					});
+
+					result += '<div class="panel panel-' + (item.errors === '0' ? (item.likely === '0' ? (item.potential === '0' ? 'success' : 'warning') : 'warning') : 'danger') + '">';
+					result += '   <div class="panel-heading">';
+					result += '     <h3 id="' + navUrl + '" class="panel-title">' + item.title + '</h3>';
+					result += '   </div>';
+					result += '	<div class="panel-body">';
+					result += '<table class="table table-bordered">';
+					result += '<tbody><tr>';			
+					result += '<th>Errors</th>';
+					result += '<th>Likely problems</th>';
+					result += '<th>Potential problems</th>';				
+					result += '</tr></tbody>';
+					result += '<tr>';			
+					result += '<td class="' + (item.errors === '0' ? 'success' : 'danger') + '"><strong>' + item.errors + '</strong></td>';		
+					result += '<td class="' + (item.likely === '0' ? 'success' : 'warning') + '"><strong>' + item.likely + '</strong></td>';		
+					result += '<td class="' + (item.potential === '0' ? 'success' : 'warning') + '"><strong>' + item.potential + '</strong></td>';			
+					result += '</tr>';		
+
+					if(errors.length > 0) {
+						result += '<tbody><tr><th colspan="2">Error message</th><th>Repair</th></tr></tbody>';
+
+						errors.forEach(function(error) {
+							result += '<tr class="danger"><td colspan="2">' + error.errorMsg + '</td><td>' + error.repair + '</td></tr>';
+							result += '<tr>';
+							result += '<td colspan="3">';
+							result += 'Line ' + error.lineNum + ' Col ' + error.columnNum + ' : <code>' + escapeHtml(error.errorSourceCode) + '</code>';
+							result += '</td>';
+							result += '</tr>';
+						});
+					}
+
+					if(likely.length > 0) {
+						result += '<tbody><tr><th colspan="2">Likely problems</th></tr><tr><th>Remark</th><th>Pass Condition</th><th>Fail Condition</th></tr></tbody>';
+
+						likely.forEach(function(error) {
+							result += '<tr class="warning">';
+							result += '<td>';
+							result += error.errorMsg;
+							result += '</td>';
+							result += '<td><input type="checkbox" /> ' + error.decisionPass + '</td>';
+							result += '<td><input type="checkbox" /> ' + error.decisionFail + '</td>';
+							result += '</tr>';
+							result += '<tr>';
+							result += '<td colspan="3">';
+							result += 'Line ' + error.lineNum + ' Col ' + error.columnNum + ' : <code>' + escapeHtml(error.errorSourceCode) + '</code>';
+							result += '</td>';
+							result += '</tr>';
+						});
+					}
+
+					if(potential.length > 0) {
+						result += '<tbody><tr><th colspan="4">Potential problems (Needs manual verification)</th></tr><tr><th>Remark</th><th>Pass Condition</th><th>Fail Condition</th></tr></tbody>';
+
+						potential.forEach(function(error) {
+							result += '<tr class="warning">';
+							result += '<td>';
+							result += error.errorMsg;
+							result += '</td>';
+							result += '<td><input type="checkbox" /> ' + error.decisionPass + '</td>';
+							result += '<td><input type="checkbox" /> ' + error.decisionFail + '</td>';
+							result += '</tr>';
+							result += '<tr>';
+							result += '<td colspan="4">';
+							result += 'Line ' + error.lineNum + ' Col ' + error.columnNum + ' : <code>' + escapeHtml(error.errorSourceCode) + '</code>';
+							result += '</td>';
+							result += '</tr>';
+						});
+					}
+					result += '</table>';
+
+					result += '</div>';
+					result += '</div>';
+
+			});
+
+			content.insertAdjacentHTML( 'beforeend', result );
+
+			if(navItems !== undefined) {
+				var navigation = document.getElementById('navigation');
+				navItems.forEach(function(item) {
+					var itemElement = document.createElement('li');
+					var itemLink = document.createElement('a');
+					itemLink.setAttribute('href',item.url);
+
+					var linkText = document.createTextNode(item.title);
+					itemLink.appendChild(linkText);
+
+					itemElement.appendChild(itemLink);
+					navigation.appendChild(itemElement);
+				});
+
+			}
+
+			var guidelineContainer = document.getElementById('guideline');
+			var guidelineContainerText = document.createTextNode(guideline);
+			guidelineContainer.appendChild(guidelineContainerText);
+
+			var validationResultContainer = document.getElementById('validation-results');
+			if(validationResultContainer !== undefined) {
+
+				// Summary
+				var summaryContainer = document.createElement('div');
+				summaryContainer.classList.add('panel');
+				summaryContainer.classList.add('panel-default');
+
+				var summaryHeading = document.createElement('div');
+				summaryHeading.classList.add('panel-heading');
+				var summaryHeadingText = document.createTextNode('Validated pages (' + results.length + ') ' + data.date);
+				summaryHeading.appendChild(summaryHeadingText);
+				summaryContainer.appendChild(summaryHeading);
+
+				var validationItemContainer = document.createElement('table'),
+					validationTableHead =  document.createElement('thead'),
+					validationTableFooter =  document.createElement('tfoot'),
+					validationTableBody =  document.createElement('tbody');
+
+				validationItemContainer.classList.add('table');
+				validationItemContainer.classList.add('table-striped');
+
+					var headerRow = document.createElement('tr'),
+						titleHeaderCell = document.createElement('th'),
+						statusHeaderCell = document.createElement('th'),
+						errorHeaderCell = document.createElement('th'),
+						likelyHeaderCell = document.createElement('th'),
+						potentialHeaderCell = document.createElement('th'),
+						dateHeaderCell = document.createElement('th'),
+						footerRow = document.createElement('tr'),
+						titleFooterCell = document.createElement('th'),
+						statusFooterCell = document.createElement('th'),
+						errorFooterCell = document.createElement('th'),
+						likelyFooterCell = document.createElement('th'),
+						potentialFooterCell = document.createElement('th'),
+						dateFooterCell = document.createElement('th');
+
+				titleHeaderCell.appendChild(document.createTextNode('URL'));
+				statusHeaderCell.appendChild(document.createTextNode('Status'));
+				errorHeaderCell.appendChild(document.createTextNode('Errors'));
+				likelyHeaderCell.appendChild(document.createTextNode('Likely problems'));
+				potentialHeaderCell.appendChild(document.createTextNode('Potential problems'));
+				dateHeaderCell.appendChild(document.createTextNode('Date'));
+
+				headerRow.appendChild(titleHeaderCell);
+				headerRow.appendChild(statusHeaderCell);
+				headerRow.appendChild(errorHeaderCell);
+				headerRow.appendChild(likelyHeaderCell);
+				headerRow.appendChild(potentialHeaderCell);
+
+				validationTableHead.appendChild(headerRow);
+				validationItemContainer.appendChild(validationTableHead);
+
+				results.forEach(function(item) {
+					var itemRow = document.createElement('tr'),
+						titleCell = document.createElement('td'),
+						statusCell = document.createElement('td'),
+						errorCell = document.createElement('td'),
+						likelyCell = document.createElement('td'),
+						potentialCell = document.createElement('td'),
+						dateCell = document.createElement('td');
+
+					var validationItemText = document.createTextNode(item.title);
+					titleCell.appendChild(validationItemText);
+
+					var validationStatusText = document.createTextNode(item.status);
+					if(item.status.toLowerCase() === 'fail') {
+						statusCell.classList.add('error');
+					}
+					statusCell.appendChild(validationStatusText);
+
+					var validationDateText = document.createTextNode(data.date);
+					dateCell.appendChild(validationDateText);
+
+					var errorCountText = document.createTextNode(item.errors);
+					errorCell.appendChild(errorCountText);
+
+					var likelyCountText = document.createTextNode(item.likely);
+					likelyCell.appendChild(likelyCountText);
+
+					var potentialCountText = document.createTextNode(item.potential);
+					potentialCell.appendChild(potentialCountText);
+
+					itemRow.appendChild(titleCell);
+					itemRow.appendChild(statusCell);
+					itemRow.appendChild(errorCell);
+					itemRow.appendChild(likelyCell);
+					itemRow.appendChild(potentialCell);
+					//itemRow.appendChild(dateCell);
+
+					validationTableBody.appendChild(itemRow);
+				});
+				validationItemContainer.appendChild(validationTableBody);
+
+				var errorSumCountText = document.createTextNode(errorCount);
+				errorFooterCell.appendChild(errorSumCountText);
+
+				var likelySumCountText = document.createTextNode(likelyCount);
+				likelyFooterCell.appendChild(likelySumCountText);
+
+				var potentialSumCountText = document.createTextNode(potentialCount);
+				potentialFooterCell.appendChild(potentialSumCountText);
+
+				footerRow.appendChild(titleFooterCell);
+				footerRow.appendChild(statusFooterCell);
+				footerRow.appendChild(errorFooterCell);
+				footerRow.appendChild(likelyFooterCell);
+				footerRow.appendChild(potentialFooterCell);
+
+				validationTableFooter.appendChild(footerRow);
+				validationItemContainer.appendChild(validationTableFooter);
+
+				summaryContainer.appendChild(validationItemContainer);
+				validationResultContainer.appendChild(summaryContainer);
+
+				// List group
+				var listGroup = document.createElement('ul');
+				listGroup.classList.add('list-group');
+
+				// Errors
+				var errorCountItem = document.createElement('li');
+				errorCountItem.classList.add('list-group-item');
+				var errorCountLabel = document.createElement('strong');
+				var errorCountLabelText = document.createTextNode('Errors');
+
+				var errorCountBadge = document.createElement('span');
+				var errorCountBadgeText = document.createTextNode(errorCount);
+				errorCountBadge.classList.add('badge');
+
+				if(errorCount > 0) {
+					errorCountItem.classList.add('list-group-item-danger');
+				} else {
+					errorCountItem.classList.add('list-group-item-success');
+				}
+
+				errorCountBadge.appendChild(errorCountBadgeText);
+				errorCountLabel.appendChild(errorCountLabelText);
+				errorCountItem.appendChild(errorCountBadge);
+				errorCountItem.appendChild(errorCountLabel);
+
+				// Likely
+
+				var likelyCountItem = document.createElement('li');
+				likelyCountItem.classList.add('list-group-item');
+				var likelyCountLabel = document.createElement('strong');
+				var likelyCountLabelText = document.createTextNode('Likely problems');
+
+				var likelyCountBadge = document.createElement('span');
+				var likelyCountBadgeText = document.createTextNode(likelyCount);
+				likelyCountBadge.classList.add('badge');
+
+				if(likelyCount > 0) {
+					likelyCountItem.classList.add('list-group-item-warning');
+				} else {
+					likelyCountItem.classList.add('list-group-item-success');
+				}
+
+				likelyCountBadge.appendChild(likelyCountBadgeText);
+				likelyCountLabel.appendChild(likelyCountLabelText);
+				likelyCountItem.appendChild(likelyCountBadge);
+				likelyCountItem.appendChild(likelyCountLabel);
+
+
+				// Potential 
+				var potentialCountItem = document.createElement('li');
+				potentialCountItem.classList.add('list-group-item');
+				var potentialCountLabel = document.createElement('strong');
+				var potentialCountLabelText = document.createTextNode('Potential problems');
+
+				var potentialCountBadge = document.createElement('span');
+				var potentialCountBadgeText = document.createTextNode(potentialCount);
+				potentialCountBadge.classList.add('badge');
+
+				if(potentialCount > 0) {
+					potentialCountItem.classList.add('list-group-item-warning');
+				} else {
+					potentialCountItem.classList.add('list-group-item-success');
+				}
+
+				potentialCountBadge.appendChild(potentialCountBadgeText);
+				potentialCountLabel.appendChild(potentialCountLabelText);
+				potentialCountItem.appendChild(potentialCountBadge);
+				potentialCountItem.appendChild(potentialCountLabel);
+
+				// Adding
+				listGroup.appendChild(errorCountItem);
+				listGroup.appendChild(likelyCountItem);
+				listGroup.appendChild(potentialCountItem);
+
+				validationResultContainer.appendChild(listGroup);
+
+				// AChecker link
+				var container = document.getElementById('container');
+				var acheckerLinkContainer = document.createElement('p');
+				acheckerLinkContainer.classList.add('text-center');
+
+				var acheckerLink = document.createElement('a');
+				acheckerLink.setAttribute('href', 'http://achecker.ca/checker/index.php');
+
+				var acheckerLinkText = document.createTextNode('Validated using AChecker');
+				acheckerLink.appendChild(acheckerLinkText);
+
+				acheckerLinkContainer.appendChild(acheckerLink);
+				container.appendChild(acheckerLinkContainer);
+			}
+
+			};
+
+			function escapeHtml(str) {
+				return str.replace(/&/g, '&amp;')
+					 .replace(/"/g, '&quot;')
+					 .replace(/'/g, '&#39;')
+					 .replace(/</g, '&lt;')
+					 .replace(/>/g, '&gt;');
+			};
+			</script>
+	    	</div>
+	    </div>
+	</div>
+	<script type="text/javascript" src="result.jsonp"></script>
+  </body>
+</html>
